@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update time display when metadata loaded
         audio.addEventListener('loadedmetadata', () => {
-            if (isFinite(audio.duration) && !isNaN(audio.duration)) {
+            if (isFinite(audio.duration) && !isNaN(audio.duration) && audio.duration > 0) {
                 durationValid = true;
                 audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
             }
@@ -261,7 +261,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Also try on canplaythrough for some browsers
         audio.addEventListener('canplaythrough', () => {
-            if (!durationValid && isFinite(audio.duration) && !isNaN(audio.duration)) {
+            if (isFinite(audio.duration) && !isNaN(audio.duration)) {
+                durationValid = true;
+                audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
+            }
+        });
+        
+        // Fallback: try on durationchange event
+        audio.addEventListener('durationchange', () => {
+            if (isFinite(audio.duration) && !isNaN(audio.duration) && audio.duration > 0) {
                 durationValid = true;
                 audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
             }
