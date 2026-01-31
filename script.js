@@ -251,32 +251,51 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         };
         
-        // Update time display when metadata loaded
-        audio.addEventListener('loadedmetadata', () => {
+        // Centralized function to update duration display
+        const updateDurationDisplay = () => {
             if (isFinite(audio.duration) && !isNaN(audio.duration) && audio.duration > 0) {
                 durationValid = true;
                 audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
+                return true;
             }
-        });
+            return false;
+        };
+        
+        // Update time display when metadata loaded
+        audio.addEventListener('loadedmetadata', updateDurationDisplay);
         
         // Also try on canplaythrough for some browsers
-        audio.addEventListener('canplaythrough', () => {
-            if (isFinite(audio.duration) && !isNaN(audio.duration)) {
-                durationValid = true;
-                audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
-            }
-        });
+        audio.addEventListener('canplaythrough', updateDurationDisplay);
         
         // Fallback: try on durationchange event
-        audio.addEventListener('durationchange', () => {
-            if (isFinite(audio.duration) && !isNaN(audio.duration) && audio.duration > 0) {
-                durationValid = true;
-                audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
-            }
-        });
+        audio.addEventListener('durationchange', updateDurationDisplay);
         
         // Set initial placeholder
         audioTime.textContent = '0:00 / --:--';
+        
+        // ROBUST DURATION LOADING STRATEGY:
+        // Step 1: Check if duration is already available immediately
+        if (!updateDurationDisplay()) {
+            // Step 2: Force metadata reload with audio.load()
+            // This triggers the browser to fetch metadata even if already cached
+            audio.load();
+            
+            // Re-check after forcing load (some browsers may have it synchronously)
+            if (!updateDurationDisplay()) {
+                // Step 3: Set timeout fallback - check duration after 500ms
+                setTimeout(() => {
+                    if (!updateDurationDisplay()) {
+                        // Step 4: Last resort - ensure preload is set to metadata and reload
+                        // This handles cases where browser didn't properly preload
+                        audio.preload = 'metadata';
+                        audio.load();
+                        
+                        // Final check after forced preload reload
+                        setTimeout(updateDurationDisplay, 100);
+                    }
+                }, 500);
+            }
+        }
         
         // Toggle play/pause
         playBtn.addEventListener('click', () => {
