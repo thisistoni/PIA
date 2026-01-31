@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Scroll-triggered Animations
     // ========================================
     const animateElements = document.querySelectorAll(
-        '.value-card, .life-card, .tool-card, .who-card, .section-header, .stack-card, .reflection-quote, .focus-banner, .connect-card'
+        '.value-card, .life-card, .tool-card, .who-card, .section-header, .stack-card, .reflection-quote, .focus-banner, .connect-card, .profile-image-wrapper'
     );
     
     // Add animation class to elements
@@ -240,9 +240,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressBar = document.querySelector('.progress-bar');
     
     if (audio && playBtn) {
+        // Track if duration is valid
+        let durationValid = false;
+        
         // Format time in mm:ss
         const formatTime = (seconds) => {
-            if (isNaN(seconds)) return '0:00';
+            if (!isFinite(seconds) || isNaN(seconds)) return '--:--';
             const mins = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -250,8 +253,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update time display when metadata loaded
         audio.addEventListener('loadedmetadata', () => {
-            audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
+            if (isFinite(audio.duration) && !isNaN(audio.duration)) {
+                durationValid = true;
+                audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
+            }
         });
+        
+        // Also try on canplaythrough for some browsers
+        audio.addEventListener('canplaythrough', () => {
+            if (!durationValid && isFinite(audio.duration) && !isNaN(audio.duration)) {
+                durationValid = true;
+                audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
+            }
+        });
+        
+        // Set initial placeholder
+        audioTime.textContent = '0:00 / --:--';
         
         // Toggle play/pause
         playBtn.addEventListener('click', () => {
@@ -266,9 +283,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update progress bar and time
         audio.addEventListener('timeupdate', () => {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            progressFill.style.width = `${progress}%`;
-            audioTime.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+            // Only update if duration is valid
+            if (isFinite(audio.duration) && !isNaN(audio.duration)) {
+                durationValid = true;
+                const progress = (audio.currentTime / audio.duration) * 100;
+                progressFill.style.width = `${progress}%`;
+                audioTime.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+            } else {
+                progressFill.style.width = '0%';
+            }
         });
         
         // Reset when audio ends
@@ -281,9 +304,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Seek on progress bar click
         if (progressBar) {
             progressBar.addEventListener('click', (e) => {
-                const rect = progressBar.getBoundingClientRect();
-                const pos = (e.clientX - rect.left) / rect.width;
-                audio.currentTime = pos * audio.duration;
+                if (isFinite(audio.duration) && !isNaN(audio.duration)) {
+                    const rect = progressBar.getBoundingClientRect();
+                    const pos = (e.clientX - rect.left) / rect.width;
+                    audio.currentTime = pos * audio.duration;
+                }
             });
         }
     }
