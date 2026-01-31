@@ -230,6 +230,64 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
     
+    // ========================================
+    // Voice Player
+    // ========================================
+    const audio = document.getElementById('pia-voice');
+    const playBtn = document.getElementById('play-btn');
+    const progressFill = document.getElementById('progress-fill');
+    const audioTime = document.getElementById('audio-time');
+    const progressBar = document.querySelector('.progress-bar');
+    
+    if (audio && playBtn) {
+        // Format time in mm:ss
+        const formatTime = (seconds) => {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        };
+        
+        // Update time display when metadata loaded
+        audio.addEventListener('loadedmetadata', () => {
+            audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
+        });
+        
+        // Toggle play/pause
+        playBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+                playBtn.classList.add('playing');
+            } else {
+                audio.pause();
+                playBtn.classList.remove('playing');
+            }
+        });
+        
+        // Update progress bar and time
+        audio.addEventListener('timeupdate', () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressFill.style.width = `${progress}%`;
+            audioTime.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+        });
+        
+        // Reset when audio ends
+        audio.addEventListener('ended', () => {
+            playBtn.classList.remove('playing');
+            progressFill.style.width = '0%';
+            audioTime.textContent = `0:00 / ${formatTime(audio.duration)}`;
+        });
+        
+        // Seek on progress bar click
+        if (progressBar) {
+            progressBar.addEventListener('click', (e) => {
+                const rect = progressBar.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                audio.currentTime = pos * audio.duration;
+            });
+        }
+    }
+    
     console.log('%c🍒 PIA initialized', 'color: #FF6B35; font-size: 14px; font-weight: bold;');
     console.log('%cPersonal Intelligence Assistant at your service', 'color: #a0a0a8; font-size: 12px;');
 });
